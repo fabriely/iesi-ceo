@@ -13,6 +13,8 @@ services:
       db:
         condition: service_healthy
         restart: true
+      rabbitmq:
+        condition: service_healthy
     develop:
       watch:
         - action: sync
@@ -44,10 +46,22 @@ services:
       start_period: 30s
       timeout: 10s
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ${PROJECT_NAME}-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # protocolo AMQP
+      - "15672:15672" # interface de gerenciamento
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata:
   node_modules:
-
-    # Documentação usada para a construção desse arquivo
-    # https://www.digitalocean.com/community/tutorials/containerizing-a-node-js-application-for-development-with-docker-compose-pt
-    # (principalmente o passo 4)
