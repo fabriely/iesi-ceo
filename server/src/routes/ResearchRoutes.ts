@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../database';
 import { Exams, Patient } from '@prisma/client';
+import { sendMessage } from '../rabbit';
 
 const Filter = Router();
 
@@ -75,57 +76,58 @@ Filter.get('/procedures/count-by-month', async (req, res) => {
 
 // Rota para obter a idade média dos pacientes atendidos no mês atual (with individual ages)
 Filter.get('/patients/average-age-this-month', async (req, res) => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    try {
-        const medicalRecords = await prisma.medicalRecord.findMany({
-            where: {
-                date: {
-                    gte: startOfMonth,
-                    lte: endOfMonth,
-                },
-            },
-            include: {
-                patient: true,
-            },
-        });
+  try {
+    const medicalRecords = await prisma.medicalRecord.findMany({
+      where: {
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+      include: {
+        patient: true,
+      },
+    });
 
-        const uniquePatients = [...new Map(medicalRecords.map(record => [record.patient.id, record.patient])).values()];
+    const uniquePatients = [
+      ...new Map(medicalRecords.map(record => [record.patient.id, record.patient])).values()
+    ];
 
-        if (uniquePatients.length === 0) {
-            return res.json({ 
-                averageAge: 0,
-                patientAges: []
-            });
-        }
-
-        // Calculate individual ages and create chart data
-        const patientAges = uniquePatients.map((patient: Patient, index: number) => {
-            const birthDate = new Date(patient.dateOfBirth);
-            let age = now.getFullYear() - birthDate.getFullYear();
-            const m = now.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            return {
-                patient: index + 1, // Chart-friendly patient number
-                age: age,
-                name: patient.name // Optional: for tooltip
-            };
-        });
-
-        const totalAge = patientAges.reduce((acc, p) => acc + p.age, 0);
-        const averageAge = totalAge / patientAges.length;
-
-        res.json({ 
-            averageAge,
-            patientAges: patientAges
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Error fetching average age' });
+    if (uniquePatients.length === 0) {
+      return res.json({ averageAge: 0, patientAges: [] });
     }
+
+    const patientAges = uniquePatients.map((patient: Patient, index: number) => {
+      const birthDate = new Date(patient.dateOfBirth);
+      let age = now.getFullYear() - birthDate.getFullYear();
+      const m = now.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return {
+        patient: index + 1,
+        age,
+        name: patient.name
+      };
+    });
+
+    const totalAge = patientAges.reduce((acc, p) => acc + p.age, 0);
+    const averageAge = totalAge / patientAges.length;
+
+    // 🚀 Envia mensagem para o RabbitMQ
+    await sendMessage(
+      'patient_stats',
+      JSON.stringify({ averageAge, patientCount: patientAges.length, timestamp: new Date() })
+    );
+
+    res.json({ averageAge, patientAges });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching average age' });
+  }
 });
 
 // Rota para obter a contagem e os detalhes de um tipo de procedimento específico nos últimos X meses
