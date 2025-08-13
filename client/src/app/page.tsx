@@ -1,8 +1,8 @@
 "use client";
 
+import api from "../services/api"
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import api from '../services/api';
 
 type FilterType = "monthly-procedures" | "patient-demographics" | "procedure-types";
 
@@ -44,6 +44,7 @@ interface DashboardData {
   procedure?: string;
   count?: number;
   months?: number;
+  selectedMonth?: string;
   dailyProcedures?: { day: number; count: number }[];
   patientAges?: { patient: number; age: number }[];
   monthlyProcedures?: { month: string; count: number }[];
@@ -51,9 +52,15 @@ interface DashboardData {
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("monthly-procedures");
-  const [selectedExamType, setSelectedExamType] = useState<string>(EXAM_TYPES[5]); // Default to "ORIENTACAO_DE_HIGIENE_BUCAL"
+  const [selectedExamType, setSelectedExamType] = useState<string>(EXAM_TYPES[5]);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // State for month selection
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const fetchData = async (filter: FilterType) => {
     setLoading(true);
@@ -61,27 +68,28 @@ export default function Home() {
       let response;
 
       switch (filter) {
-        // filtro para pegar a quantidade de procedimentos realizados no mês atual
-        case "monthly-procedures":
-          response = await api.get('/filters/procedures/count-this-month');
+        case "monthly-procedures": {
+          const [year, month] = selectedMonth.split("-");
+          response = await api.get('filters/procedures/count-by-month', {
+            params: { year: parseInt(year), month: parseInt(month) }
+          });
           setData(response.data);
           break;
-        // filtro para pegar a media de idade dos pacientes do mes atual
+        }
         case "patient-demographics":
-          response = await api.get('/filters/patients/average-age-this-month');
+          response = await api.get('filters/patients/average-age-this-month');
           setData(response.data);
           break;
-        // filtro para pegar a quantidade e detalhes de procedimentos realizados por tipo
         case "procedure-types":
-          response = await api.get('/filters/procedures/details-by-type', {
+          response = await api.get('filters/procedures/details-by-type', {
             params: { type: selectedExamType, months: "6" }
           });
-          console.log("Response data:", response.data);
           setData(response.data.count);
           break;
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -89,13 +97,13 @@ export default function Home() {
 
   useEffect(() => {
     fetchData(activeFilter);
-  }, [activeFilter, selectedExamType]); // Re-fetch when exam type changes
+  }, [activeFilter, selectedExamType, selectedMonth]); // Re-fetch when month changes
 
   const renderChart = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <div className="text-lg text-gray-600 dark:text-gray-300">Loading...</div>
+          <div className="text-lg text-gray-600 dark:text-gray-300">Carregando...</div>
         </div>
       );
     }
@@ -103,7 +111,7 @@ export default function Home() {
     if (!data) {
       return (
         <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <div className="text-lg text-gray-600 dark:text-gray-300">No data available</div>
+          <div className="text-lg text-gray-600 dark:text-gray-300">Nenhum dado disponível</div>
         </div>
       );
     }
@@ -113,14 +121,22 @@ export default function Home() {
         return (
           <div className="h-96 w-full">
             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
-              Daily Procedures This Month
+              Procedimentos diários - {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { 
+                month: 'long', 
+                year: 'numeric' 
+              })}
             </h3>
-            <ResponsiveContainer width="100%" height="100%">
+            <div className="mb-4 text-center">
+              <span className="text-lg font-medium text-gray-600 dark:text-gray-300">
+                Total de procedimentos: {data.totalProcedures}
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height="85%">
               <BarChart data={data.dailyProcedures}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
                 <XAxis 
                   dataKey="day" 
-                  tick={false}
+                  tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={{ stroke: '#6b7280' }}
                 />
                 <YAxis 
@@ -128,8 +144,8 @@ export default function Home() {
                   axisLine={{ stroke: '#6b7280' }}
                 />
                 <Tooltip 
-                  formatter={(value: any, name: any) => [value, 'Procedures']}
-                  labelFormatter={(label: any) => `Day ${label}`}
+                  formatter={(value: any) => [value, 'Procedimentos']}
+                  labelFormatter={(label: any) => `Dia ${label}`}
                   contentStyle={{ 
                     backgroundColor: '#f8fafc', 
                     border: '1px solid #e2e8f0',
@@ -146,7 +162,7 @@ export default function Home() {
         return (
           <div className="h-96 w-full">
             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
-              Patient Ages Distribution
+              Distribuição de Idades dos Pacientes
             </h3>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.patientAges}>
@@ -159,11 +175,11 @@ export default function Home() {
                 <YAxis 
                   tick={{ fill: '#6b7280', fontSize: 12 }}
                   axisLine={{ stroke: '#6b7280' }}
-                  label={{ value: 'Age', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Idade', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
-                  formatter={(value: any, name: any) => [value, 'Age']}
-                  labelFormatter={(label: any) => `Patient ${label}`}
+                  formatter={(value: any) => [value, 'Idade']}
+                  labelFormatter={(label: any) => `Paciente ${label}`}
                   contentStyle={{ 
                     backgroundColor: '#f0fdf4', 
                     border: '1px solid #bbf7d0',
@@ -176,7 +192,7 @@ export default function Home() {
                   stroke="#059669" 
                   strokeDasharray="8 8" 
                   strokeWidth={2}
-                  label={{ value: `Avg: ${Math.round(data.averageAge || 0)}`, position: "right" }}
+                  label={{ value: `Média: ${Math.round(data.averageAge || 0)}`, position: "right" }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -187,7 +203,7 @@ export default function Home() {
         return (
           <div className="h-96 w-full">
             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
-              Monthly Procedure Trends
+              Tendências Mensais de Procedimentos
             </h3>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.monthlyProcedures}>
@@ -200,11 +216,11 @@ export default function Home() {
                 <YAxis 
                   tick={{ fill: '#6b7280', fontSize: 12 }}
                   axisLine={{ stroke: '#6b7280' }}
-                  label={{ value: 'Procedures', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Procedimentos', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip 
-                  formatter={(value: any, name: any) => [value, 'Procedures']}
-                  labelFormatter={(label: any) => `Month: ${label}`}
+                  formatter={(value: any) => [value, 'Procedimentos']}
+                  labelFormatter={(label: any) => `Mês: ${label}`}
                   contentStyle={{ 
                     backgroundColor: '#faf5ff', 
                     border: '1px solid #d8b4fe',
@@ -231,7 +247,7 @@ export default function Home() {
             CEO Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Healthcare Analytics & Insights
+            Análises e Insights de Saúde
           </p>
         </div>
 
@@ -245,7 +261,7 @@ export default function Home() {
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
             }`}
           >
-            Monthly Procedures
+            Procedimentos Mensais
           </button>
           <button
             onClick={() => setActiveFilter("patient-demographics")}
@@ -255,7 +271,7 @@ export default function Home() {
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
             }`}
           >
-            Patient Demographics
+            Demografia dos Pacientes
           </button>
           <button
             onClick={() => setActiveFilter("procedure-types")}
@@ -265,16 +281,33 @@ export default function Home() {
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
             }`}
           >
-            Procedure Types
+            Tipos de Procedimento
           </button>
         </div>
+
+        {/* Month Selector - Only show when monthly-procedures is selected */}
+        {activeFilter === "monthly-procedures" && (
+          <div className="flex justify-center mb-6">
+            <div className="flex flex-col items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Selecionar mês:
+              </label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Exam Type Dropdown - Only show when procedure-types is selected */}
         {activeFilter === "procedure-types" && (
           <div className="flex justify-center mb-6">
             <div className="flex flex-col items-center gap-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Select Procedure Type:
+                Selecionar tipo de procedimento:
               </label>
               <select
                 value={selectedExamType}

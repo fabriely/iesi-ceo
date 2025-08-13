@@ -5,10 +5,22 @@ import { Exams, Patient } from '@prisma/client';
 const Filter = Router();
 
 // Rota para obter a contagem de procedimentos realizados no mês atual (daily breakdown)
-Filter.get('/procedures/count-this-month', async (req, res) => {
+// Rota atualizada para obter a contagem de procedimentos por mês específico
+Filter.get('/procedures/count-by-month', async (req, res) => {
+  const { year, month } = req.query;
+
+  // Se não fornecido, usa o mês atual
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const targetYear = year ? parseInt(year as string, 10) : now.getFullYear();
+  const targetMonth = month ? parseInt(month as string, 10) : now.getMonth() + 1;
+
+  // Validação
+  if (isNaN(targetYear) || isNaN(targetMonth) || targetMonth < 1 || targetMonth > 12) {
+    return res.status(400).json({ error: 'Invalid year or month parameters' });
+  }
+
+  const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
+  const endOfMonth = new Date(targetYear, targetMonth, 0);
 
   try {
     const medicalRecords = await prisma.medicalRecord.findMany({
@@ -52,9 +64,11 @@ Filter.get('/procedures/count-this-month', async (req, res) => {
 
     res.json({ 
       totalProcedures,
-      dailyProcedures: dailyData 
+      dailyProcedures: dailyData,
+      selectedMonth: `${targetYear}-${String(targetMonth).padStart(2, '0')}`
     });
   } catch (error) {
+    console.error('Error fetching procedures count:', error);
     res.status(500).json({ error: 'Error fetching procedures count' });
   }
 });
@@ -151,11 +165,37 @@ Filter.get('/procedures/details-by-type', async (req, res) => {
             }
         });
 
+        // Agrupar por mês para criar dados para o gráfico
+        const monthlyProcedures: { [key: string]: number } = {};
+        
+        // Inicializar últimos X meses
+        for (let i = monthsAgo - 1; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthKey = date.toLocaleDateString('pt-BR', { month: 'short' });
+            monthlyProcedures[monthKey] = 0;
+        }
+
+        // Contar procedimentos por mês
+        medicalRecords.forEach(record => {
+            const monthKey = record.date.toLocaleDateString('pt-BR', { month: 'short' });
+            if (monthlyProcedures.hasOwnProperty(monthKey)) {
+                monthlyProcedures[monthKey] += record.clinicExam.filter(exam => exam === examType).length;
+            }
+        });
+
+        // Converter para formato do gráfico
+        const monthlyData = Object.entries(monthlyProcedures).map(([month, count]) => ({
+            month,
+            count
+        }));
+
         res.json({ 
             procedureType: type, 
-            count: medicalRecords.length, 
+            count: {
+                monthlyProcedures: monthlyData  // ✅ Estrutura que o frontend espera
+            },
             months: monthsAgo,
-            records: medicalRecords 
+            totalRecords: medicalRecords.length
         });
     } catch (error) {
         console.error(error);
