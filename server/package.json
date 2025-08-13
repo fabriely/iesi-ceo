@@ -8,7 +8,7 @@
     "node": ">=18.16"
   },
   "scripts": {
-    "dev": "concurrently \"ts-node-dev --poll --exit-child -r tsconfig-paths/register --respawn --transpile-only --ignore-watch node_modules --no-notify src/server.ts\" \"prisma generate --watch\"",
+    "dev": "cross-env RABBITMQ_URL=amqp://guest:guest@iesi-rabbitmq:5672 concurrently \"ts-node-dev --poll --exit-child -r tsconfig-paths/register --respawn --transpile-only --ignore-watch node_modules --no-notify src/server.ts\" \"prisma generate --watch\"",
     "build": "swc src --extensions \".js,.ts\" --out-dir dist --copy-files",
     "start": "node dist/index.js",
     "seed": "cross-env DATABASE_HOST='localhost' ts-node prisma/seed.ts",
