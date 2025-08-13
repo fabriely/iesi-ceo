@@ -102,16 +102,16 @@ export default function Home() {
   const renderChart = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <div className="text-lg text-gray-600 dark:text-gray-300">Carregando...</div>
+        <div className="flex items-center justify-center h-[360px] bg-amber-50 rounded-lg">
+          <div className="text-lg text-gray-900">Carregando...</div>
         </div>
       );
     }
 
     if (!data) {
       return (
-        <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <div className="text-lg text-gray-600 dark:text-gray-300">Nenhum dado disponível</div>
+        <div className="flex items-center justify-center h-[360px] bg-amber-50 rounded-lg">
+          <div className="text-lg text-gray-900">Nenhum dado disponível</div>
         </div>
       );
     }
@@ -119,37 +119,43 @@ export default function Home() {
     switch (activeFilter) {
       case "monthly-procedures":
         return (
-          <div className="h-96 w-full">
-            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
-              Procedimentos diários - {new Date(selectedMonth + '-01').toLocaleDateString('pt-BR', { 
-                month: 'long', 
-                year: 'numeric' 
-              })}
+          <div className="h-[360px] w-full">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
+              Quantidade de Exames Diários - {(() => {
+                const [year, month] = selectedMonth.split("-");
+                const monthName = new Date(parseInt(year), parseInt(month) - 1, 1).toLocaleDateString('pt-BR', { 
+                  month: 'long', 
+                  year: 'numeric' 
+                });
+                return monthName.charAt(0).toUpperCase() + monthName.slice(1);
+              })()}
             </h3>
             <div className="mb-4 text-center">
-              <span className="text-lg font-medium text-gray-600 dark:text-gray-300">
-                Total de procedimentos: {data.totalProcedures}
+              <span className="text-lg font-medium text-gray-800">
+                Total de exames neste mês: {data.totalProcedures}
               </span>
             </div>
-            <ResponsiveContainer width="100%" height="85%">
+            <ResponsiveContainer width="100%" height="70%">
               <BarChart data={data.dailyProcedures}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" />
                 <XAxis 
                   dataKey="day" 
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
-                  axisLine={{ stroke: '#6b7280' }}
+                  tick={{ fill: '#374151', fontSize: 11 }}
+                  axisLine={{ stroke: '#374151' }}
                 />
                 <YAxis 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  axisLine={{ stroke: '#6b7280' }}
+                  tick={{ fill: '#374151', fontSize: 12 }}
+                  axisLine={{ stroke: '#374151' }}
+                  label={{ value: 'Número de Exames', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                 />
                 <Tooltip 
                   formatter={(value: any) => [value, 'Procedimentos']}
                   labelFormatter={(label: any) => `Dia ${label}`}
                   contentStyle={{ 
-                    backgroundColor: '#f8fafc', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px'
+                    backgroundColor: '#ffffff', 
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    color: '#374151'
                   }}
                 />
                 <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -160,30 +166,36 @@ export default function Home() {
 
       case "patient-demographics":
         return (
-          <div className="h-96 w-full">
-            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
+          <div className="h-[360px] w-full">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
               Distribuição de Idades dos Pacientes
             </h3>
-            <ResponsiveContainer width="100%" height="100%">
+            <div className="mb-4 text-center">
+              <span className="text-lg font-medium text-gray-800">
+                Idade média: {data.averageAge ? data.averageAge.toFixed(1) : '0.0'} anos
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height="70%">
               <BarChart data={data.patientAges}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" />
                 <XAxis 
                   dataKey="patient" 
                   tick={false}
-                  axisLine={{ stroke: '#6b7280' }}
+                  axisLine={{ stroke: '#374151' }}
                 />
                 <YAxis 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  axisLine={{ stroke: '#6b7280' }}
-                  label={{ value: 'Idade', angle: -90, position: 'insideLeft' }}
+                  tick={{ fill: '#374151', fontSize: 12 }}
+                  axisLine={{ stroke: '#374151' }}
+                  label={{ value: 'Idade', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                 />
                 <Tooltip 
                   formatter={(value: any) => [value, 'Idade']}
                   labelFormatter={(label: any) => `Paciente ${label}`}
                   contentStyle={{ 
-                    backgroundColor: '#f0fdf4', 
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '8px'
+                    backgroundColor: '#ffffff', 
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    color: '#374151'
                   }}
                 />
                 <Bar dataKey="age" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -201,33 +213,39 @@ export default function Home() {
 
       case "procedure-types":
         return (
-          <div className="h-96 w-full">
-            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6 text-center">
+          <div className="h-[360px] w-full">
+            <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
               Tendências Mensais de Procedimentos
             </h3>
-            <ResponsiveContainer width="100%" height="100%">
+            <div className="mb-4 text-center">
+              <span className="text-lg font-medium text-gray-800">
+                Total de procedimentos deste tipo: {data.monthlyProcedures?.reduce((sum, item) => sum + item.count, 0) || 0}
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height="70%">
               <BarChart data={data.monthlyProcedures}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#9ca3af" />
                 <XAxis 
                   dataKey="month" 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  axisLine={{ stroke: '#6b7280' }}
+                  tick={{ fill: '#374151', fontSize: 12 }}
+                  axisLine={{ stroke: '#374151' }}
                 />
                 <YAxis 
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  axisLine={{ stroke: '#6b7280' }}
-                  label={{ value: 'Procedimentos', angle: -90, position: 'insideLeft' }}
+                  tick={{ fill: '#374151', fontSize: 12 }}
+                  axisLine={{ stroke: '#374151' }}
+                  label={{ value: 'Procedimentos', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                 />
                 <Tooltip 
                   formatter={(value: any) => [value, 'Procedimentos']}
                   labelFormatter={(label: any) => `Mês: ${label}`}
                   contentStyle={{ 
-                    backgroundColor: '#faf5ff', 
-                    border: '1px solid #d8b4fe',
-                    borderRadius: '8px'
+                    backgroundColor: '#ffffff', 
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    color: '#374151'
                   }}
                 />
-                <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -239,36 +257,37 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+    <div className="min-h-screen bg-amber-50 p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
             CEO Dashboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-800">
             Análises e Insights de Saúde
           </p>
         </div>
 
-        {/* Filter Buttons */}
-        <div className="flex flex-wrap justify-center gap-4 mb-8">
+        {/* Filter Buttons and Controls */}
+        <div className="flex flex-wrap justify-center items-center gap-4 mb-8">
+          {/* Filter Buttons */}
           <button
             onClick={() => setActiveFilter("monthly-procedures")}
             className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeFilter === "monthly-procedures"
                 ? "bg-blue-600 text-white shadow-lg"
-                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                : "bg-amber-100 text-gray-900 hover:bg-amber-200 border border-amber-200"
             }`}
           >
-            Procedimentos Mensais
+            Quantidade de exames
           </button>
           <button
             onClick={() => setActiveFilter("patient-demographics")}
             className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeFilter === "patient-demographics"
                 ? "bg-green-600 text-white shadow-lg"
-                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                : "bg-amber-100 text-gray-900 hover:bg-amber-200 border border-amber-200"
             }`}
           >
             Demografia dos Pacientes
@@ -277,42 +296,32 @@ export default function Home() {
             onClick={() => setActiveFilter("procedure-types")}
             className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeFilter === "procedure-types"
-                ? "bg-purple-600 text-white shadow-lg"
-                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                ? "bg-orange-600 text-white shadow-lg"
+                : "bg-amber-100 text-gray-900 hover:bg-amber-200 border border-amber-200"
             }`}
           >
             Tipos de Procedimento
           </button>
-        </div>
 
-        {/* Month Selector - Only show when monthly-procedures is selected */}
-        {activeFilter === "monthly-procedures" && (
-          <div className="flex justify-center mb-6">
-            <div className="flex flex-col items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Selecionar mês:
-              </label>
+          {/* Month Selector - Only show when monthly-procedures is selected */}
+          {activeFilter === "monthly-procedures" && (
+            <div className="ml-6">
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 rounded-lg border border-amber-200 bg-amber-100 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Exam Type Dropdown - Only show when procedure-types is selected */}
-        {activeFilter === "procedure-types" && (
-          <div className="flex justify-center mb-6">
-            <div className="flex flex-col items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Selecionar tipo de procedimento:
-              </label>
+          {/* Exam Type Dropdown - Only show when procedure-types is selected */}
+          {activeFilter === "procedure-types" && (
+            <div className="ml-6">
               <select
                 value={selectedExamType}
                 onChange={(e) => setSelectedExamType(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent min-w-[300px] max-w-[500px]"
+                className="px-3 py-2 rounded-lg border border-amber-200 bg-amber-100 text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-transparent min-w-[250px] max-w-[350px] text-sm"
               >
                 {EXAM_TYPES.map((examType) => (
                   <option key={examType} value={examType}>
@@ -321,11 +330,11 @@ export default function Home() {
                 ))}
               </select>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Chart Area */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <div className="bg-amber-100 rounded-xl shadow-lg p-8">
           {renderChart()}
         </div>
       </div>
