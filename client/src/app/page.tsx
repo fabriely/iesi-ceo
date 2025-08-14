@@ -1,8 +1,9 @@
 "use client";
 
-import api from "../services/api"
+import api from "@/services/api"
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { socket } from "@/services/socket";
 
 type FilterType = "monthly-procedures" | "patient-demographics" | "procedure-types";
 
@@ -62,6 +63,37 @@ export default function Home() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  useEffect(() => {
+    // Conecta ao servidor WebSocket quando o componente é montado
+    socket.connect();
+    console.log('Tentando conectar ao WebSocket...');
+
+    function onConnect() {
+      console.log('Conectado ao servidor WebSocket:', socket.id);
+    }
+
+    function onDisconnect() {
+      console.log('Desconectado do servidor WebSocket.');
+    }
+
+    function onNotification(value: any) {
+      // Exibe um alerta simples com a mensagem da notificação
+      alert(`${value.title}: ${value.message}`);
+    }
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('notification', onNotification);
+
+    // Função de limpeza para desconectar e remover os listeners quando o componente for desmontado
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('notification', onNotification);
+      socket.disconnect();
+    };
+  }, []);
+
   const fetchData = async (filter: FilterType) => {
     setLoading(true);
     try {
@@ -97,7 +129,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchData(activeFilter);
-  }, [activeFilter, selectedExamType, selectedMonth]); // Re-fetch when month changes
+  }, [activeFilter, selectedExamType, selectedMonth]);
 
   const renderChart = () => {
     if (loading) {
