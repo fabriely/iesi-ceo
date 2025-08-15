@@ -1,0 +1,45 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18.16"
+  },
+  "scripts": {
+    "dev": "cross-env RABBITMQ_URL=amqp://guest:guest@iesi-rabbitmq:5672 concurrently \"ts-node-dev --poll --exit-child -r tsconfig-paths/register --respawn --transpile-only --ignore-watch node_modules --no-notify src/server.ts\" \"prisma generate --watch\"",
+    "build": "swc src --extensions \".js,.ts\" --out-dir dist --copy-files",
+    "start": "node dist/index.js",
+    "seed": "cross-env DATABASE_HOST='localhost' ts-node prisma/seed.ts",
+    "migration": "cross-env DATABASE_HOST='localhost' prisma migrate dev",
+    "migration:reset": "cross-env DATABASE_HOST='localhost' prisma migrate reset --force",
+    "generate": "prisma generate",
+    "studio": "cross-env DATABASE_HOST='localhost' prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.24",
+    "prisma": "^5.10.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.2",
+    "@types/amqplib": "^0.10.7",
+    "@types/cors": "^2.8.19",
+    "amqplib": "^0.10.8",
+    "concurrently": "^9.2.0",
+    "cors": "^2.8.5",
+    "cross-env": "^10.0.0",
+    "dotenv": "^17.2.1",
+    "express": "^4.18.3",
+    "helmet": "^8.1.0",
+    "socket.io": "^4.8.1",
+    "tsconfig-paths": "^4.2.0",
+    "zod": "^4.0.17"
+  }
+}

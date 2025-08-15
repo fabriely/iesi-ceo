@@ -1,0 +1,69 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Sex {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Exams {
+  TRATAMENTO_POR_ALTA_POTENCIA_FLUORETOS_NA_MUCOSA_ORAL
+  MOLDAGEM_DENTAL_MAXILAR_PARA_CONSTRUCAO_DE_PROTESE_DENTA
+  REMBASAMENTO_E_CONSERTO_DE_PROTESE_DENTARIA
+  SESSAO_DE_IMPOSICAO_DE_MAOS
+  EXCISAO_E_SUTURA_DE_LESAO_NA_BOCA
+  ORIENTACAO_DE_HIGIENE_BUCAL
+  ORIENTACAO_DE_HIGIENIZACAO_DE_PROTESES_DENTARIAS
+  BIOPSIA_DOS_TECIDOS_MOLES_DA_BOCA
+  RADIOGRAFIA_PANORAMICA
+  RADIOGRAFIA_INTERPROXIMAL_BITE_WING
+  RADIOGRAFIA_PERIAPICAL
+  RESTAURACAO_DE_DENTE_PERMANENTE_ANTERIOR_COM_RESINA_COMPOSTA
+  RESTAURACAO_DE_DENTE_DECIDUO_POSTERIOR_COM_RESINA_COMPOSTA
+  RESTAURACAO_DE_DENTE_DECIDUO_ANTERIOR_COM_RESINA_COMPOSTA
+  RESTAURACAO_DE_DENTE_PERMANENTE_POSTERIOR_COM_RESINA_COMPOSTA
+  ADEQUACAO_DO_COMPORTAMENTO_DE_CRIANCAS
+  PROTESE_PARCIAL_MANDIBULAR_REMOVIVEL
+  PROTESE_PARCIAL_MAXILAR_REMOVIVEL
+  PROTESE_TOTAL_MANDIBULAR
+  PROTESE_TOTAL_MAXILAR
+}
+
+model Patient {
+    id    Int     @id @default(autoincrement())
+    email String  @unique
+    name  String
+    cpf   String @unique
+    dateOfBirth DateTime
+    sex   Sex
+    medicalRecords MedicalRecord[] @relation("PatientMedicalRecords")
+}
+
+model HealthProfessional {
+    id    Int     @id @default(autoincrement())
+    cro   String  @unique
+    email String  @unique
+    name  String
+    position   String
+    sex   Sex
+    dateOfBirth DateTime
+    medicalRecords MedicalRecord[] @relation("DoctorMedicalRecords")
+}
+
+model MedicalRecord {
+    id         Int      @id @default(autoincrement())
+    date       DateTime
+    patientId  Int
+    doctorId   Int
+    anamnesis  String
+    clinicExam Exams[]
+    patient    Patient  @relation("PatientMedicalRecords", fields: [patientId], references: [id])
+    doctor     HealthProfessional @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
+}

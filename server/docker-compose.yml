@@ -1,0 +1,67 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    image: nodejs-server
+    container_name: ${PROJECT_NAME}-server
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '${SERVER_PORT}:3001'
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      rabbitmq:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./
+          target: /home/node/app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+
+  db:
+    image: postgres
+    container_name: ${PROJECT_NAME}-db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - '${DATABASE_PORT}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER}']
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ${PROJECT_NAME}-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # protocolo AMQP
+      - "15672:15672" # interface de gerenciamento
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  node_modules:
